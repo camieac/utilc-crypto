@@ -35,10 +35,6 @@
 // The array that stores the round keys.
 static uint8_t RoundKey[176];
 
-// Initial Vector used only for CBC mode
-static uint8_t* Iv;
-
-
 // This function produces Nb(Nr+1) round keys. The round keys are used in each round to decrypt the states.
 /*
 inputs: key,
@@ -346,12 +342,12 @@ uint32_t AES128_ECB_decrypt(uint8_t* input, const uint8_t* key, uint8_t *output)
 	return UC_CRYPTO_SUCCESS;
 }
 
-static void XorWithIv(uint8_t* buf)
+static void XorWithIv(uint8_t* buf, unsigned char *iv)
 {
   uint8_t i;
   for(i = 0; i < KEY_LEN; ++i)
   {
-    buf[i] ^= Iv[i];
+    buf[i] ^= iv[i];
   }
 }
 
@@ -369,19 +365,19 @@ uint32_t AES128_CBC_encrypt_buffer(uint8_t* output, uint8_t* input, uint32_t len
   {
     KeyExpansion(key);
   }
-
-  if(iv != 0)
-  {
-    Iv = (uint8_t*)iv;
-  }
+	// TODO: check IV for NULL?
+  // if(iv != 0)
+  // {
+  //   Iv = (uint8_t*)iv;
+  // }
 
   for(i = 0; i < length; i += KEY_LEN)
   {
-    XorWithIv(input);
+    XorWithIv(input, iv);
     memcpy(output, input, KEY_LEN);
     state = (state_t*)output;
     Cipher(state);
-    Iv = output;
+    iv = output;
     input += KEY_LEN;
     output += KEY_LEN;
   }
@@ -417,18 +413,18 @@ uint32_t AES128_CBC_decrypt_buffer(unsigned char* output, unsigned char* input, 
   }
 
   // If iv is passed as 0, we continue to encrypt without re-setting the Iv
-  if(iv != 0)
-  {
-    Iv = (uint8_t*)iv;
-  }
+  // if(iv != 0)
+  // {
+  //   Iv = (uint8_t*)iv;
+  // }
 
   for(i = 0; i < length; i += KEY_LEN)
   {
     memcpy(output, input, KEY_LEN);
     state = (state_h) output;
     InvCipher(state);
-    XorWithIv(output);
-    Iv = input;
+    XorWithIv(output, iv);
+    iv = input;
     input += KEY_LEN;
     output += KEY_LEN;
   }
