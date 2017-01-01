@@ -33,7 +33,7 @@
 /*****************************************************************************/
 // state - array holding the intermediate results during decryption.
 typedef uint8_t state_t[4][4];
-static state_t* state;
+//static state_t* state;
 
 // The array that stores the round keys.
 static uint8_t RoundKey[176];
@@ -119,7 +119,7 @@ static void KeyExpansion(/*unsigned char *key, unsigned char ** round_keys*/)
 
 // This function adds the round key to state.
 // The round key is added to the state by an XOR function.
-static void AddRoundKey(uint8_t round)
+static void AddRoundKey(uint8_t round, state_h state)
 {
   uint8_t i,j;
   for(i=0;i<4;++i)
@@ -133,7 +133,7 @@ static void AddRoundKey(uint8_t round)
 
 // The SubBytes Function Substitutes the values in the
 // state matrix with values in an S-box.
-static void SubBytes(void)
+static void SubBytes(state_h state)
 {
   uint8_t i, j;
   for(i = 0; i < 4; ++i)
@@ -148,7 +148,7 @@ static void SubBytes(void)
 // The ShiftRows() function shifts the rows in the state to the left.
 // Each row is shifted with different offset.
 // Offset = Row number. So the first row is not shifted.
-static void ShiftRows(void)
+static void ShiftRows(state_h state)
 {
   uint8_t temp;
 
@@ -182,7 +182,7 @@ static uint8_t xtime(uint8_t x)
 }
 
 // MixColumns function mixes the columns of the state matrix
-static void MixColumns(void)
+static void MixColumns(state_h state)
 {
   uint8_t i;
   uint8_t Tmp,Tm,t;
@@ -211,12 +211,11 @@ static uint8_t Multiply(uint8_t x, uint8_t y)
 // MixColumns function mixes the columns of the state matrix.
 // The method used to multiply may be difficult to understand for the inexperienced.
 // Please use the references to gain more information.
-static void InvMixColumns(void)
+static void InvMixColumns(state_h state)
 {
   int i;
   uint8_t a,b,c,d;
-  for(i=0;i<4;++i)
-  {
+  for(i = 0; i < 4; ++i) {
     a = (*state)[i][0];
     b = (*state)[i][1];
     c = (*state)[i][2];
@@ -232,124 +231,126 @@ static void InvMixColumns(void)
 
 // The SubBytes Function Substitutes the values in the
 // state matrix with values in an S-box.
-static void InvSubBytes(void)
+static void InvSubBytes(state_h state)
 {
   uint8_t i,j;
   for(i=0;i<4;++i)
   {
     for(j=0;j<4;++j)
     {
-      (*state)[j][i] = rsbox[(*state)[j][i]];
+      (*state)[j][i] = inv_sbox[(*state)[j][i]];
     }
   }
 }
 
-static void InvShiftRows(void)
+static void InvShiftRows(state_h state)
 {
   uint8_t temp;
 
   // Rotate first row 1 columns to right
-  temp=(*state)[3][1];
-  (*state)[3][1]=(*state)[2][1];
-  (*state)[2][1]=(*state)[1][1];
-  (*state)[1][1]=(*state)[0][1];
-  (*state)[0][1]=temp;
+  temp = (*state)[3][1];
+  (*state)[3][1] = (*state)[2][1];
+  (*state)[2][1] = (*state)[1][1];
+  (*state)[1][1] = (*state)[0][1];
+  (*state)[0][1] = temp;
 
   // Rotate second row 2 columns to right
-  temp=(*state)[0][2];
-  (*state)[0][2]=(*state)[2][2];
-  (*state)[2][2]=temp;
+  temp = (*state)[0][2];
+  (*state)[0][2] = (*state)[2][2];
+  (*state)[2][2] = temp;
 
-  temp=(*state)[1][2];
-  (*state)[1][2]=(*state)[3][2];
-  (*state)[3][2]=temp;
+  temp = (*state)[1][2];
+  (*state)[1][2] = (*state)[3][2];
+  (*state)[3][2] = temp;
 
   // Rotate third row 3 columns to right
   temp=(*state)[0][3];
-  (*state)[0][3]=(*state)[1][3];
-  (*state)[1][3]=(*state)[2][3];
-  (*state)[2][3]=(*state)[3][3];
-  (*state)[3][3]=temp;
+  (*state)[0][3] = (*state)[1][3];
+  (*state)[1][3] = (*state)[2][3];
+  (*state)[2][3] = (*state)[3][3];
+  (*state)[3][3] = temp;
 }
 
 
 // Cipher is the main function that encrypts the PlainText.
-static void Cipher(void)
+static void Cipher(state_h state)
 {
   uint8_t round = 0;
 
   // Add the First round key to the state before starting the rounds.
-  AddRoundKey(0);
+  AddRoundKey(0, state);
 
   // There will be Nr rounds.
   // The first Nr-1 rounds are identical.
   // These Nr-1 rounds are executed in the loop below.
   for(round = 1; round < Nr; ++round)
   {
-    SubBytes();
-    ShiftRows();
-    MixColumns();
-    AddRoundKey(round);
+    SubBytes(state);
+    ShiftRows(state);
+    MixColumns(state);
+    AddRoundKey(round, state);
   }
 
   // The last round is given below.
   // The MixColumns function is not here in the last round.
-  SubBytes();
-  ShiftRows();
-  AddRoundKey(Nr);
+  SubBytes(state);
+  ShiftRows(state);
+  AddRoundKey(Nr, state);
 }
 
-static void InvCipher(void)
+static void InvCipher(state_h state)
 {
   uint8_t round=0;
 
   // Add the First round key to the state before starting the rounds.
-  AddRoundKey(Nr);
+  AddRoundKey(Nr, state);
 
   // There will be Nr rounds.
   // The first Nr-1 rounds are identical.
   // These Nr-1 rounds are executed in the loop below.
   for(round=Nr-1;round>0;round--)
   {
-    InvShiftRows();
-    InvSubBytes();
-    AddRoundKey(round);
-    InvMixColumns();
+    InvShiftRows(state);
+    InvSubBytes(state);
+    AddRoundKey(round, state);
+    InvMixColumns(state);
   }
 
   // The last round is given below.
   // The MixColumns function is not here in the last round.
-  InvShiftRows();
-  InvSubBytes();
-  AddRoundKey(0);
+  InvShiftRows(state);
+  InvSubBytes(state);
+  AddRoundKey(0, state);
 }
 
 uint32_t AES128_ECB_encrypt(uint8_t* input, const uint8_t* key, uint8_t* output)
 {
+	state_h state;
   // Copy input to output, and work in-memory on output
   memcpy(output, input, KEY_LEN);
-  state = (state_t*)output;
+  state = (state_h) output;
 
   Key = key;
   KeyExpansion();
 
   // The next function call encrypts the PlainText with the Key using AES algorithm.
-  Cipher();
+  Cipher(state);
 
 	return UC_CRYPTO_SUCCESS;
 }
 
 uint32_t AES128_ECB_decrypt(uint8_t* input, const uint8_t* key, uint8_t *output)
 {
+	state_h state;
   // Copy input to output, and work in-memory on output
   memcpy(output, input, KEY_LEN);
-  state = (state_t*)output;
+  state = (state_h) output;
 
   // The KeyExpansion routine must be called before encryption.
   Key = key;
   KeyExpansion();
 
-  InvCipher();
+  InvCipher(state);
 
 	return UC_CRYPTO_SUCCESS;
 }
@@ -365,11 +366,12 @@ static void XorWithIv(uint8_t* buf)
 
 uint32_t AES128_CBC_encrypt_buffer(uint8_t* output, uint8_t* input, uint32_t length, const uint8_t* key, const uint8_t* iv)
 {
+	state_h state;
   uintptr_t i;
   uint8_t remainders = length % KEY_LEN; /* Remaining bytes in the last non-full block */
 
   memcpy(output, input, KEY_LEN);
-  state = (state_t*)output;
+  state = (state_h) output;
 
   // Skip the key expansion if key is passed as 0
   if(0 != key)
@@ -388,7 +390,7 @@ uint32_t AES128_CBC_encrypt_buffer(uint8_t* output, uint8_t* input, uint32_t len
     XorWithIv(input);
     memcpy(output, input, KEY_LEN);
     state = (state_t*)output;
-    Cipher();
+    Cipher(state);
     Iv = output;
     input += KEY_LEN;
     output += KEY_LEN;
@@ -399,7 +401,7 @@ uint32_t AES128_CBC_encrypt_buffer(uint8_t* output, uint8_t* input, uint32_t len
     memcpy(output, input, KEY_LEN);
     memset(output + remainders, 0, KEY_LEN - remainders); /* add 0-padding */
     state = (state_t*)output;
-    Cipher();
+    Cipher(state);
   }
 
 	return UC_CRYPTO_SUCCESS;
@@ -407,15 +409,16 @@ uint32_t AES128_CBC_encrypt_buffer(uint8_t* output, uint8_t* input, uint32_t len
 
 uint32_t AES128_CBC_decrypt_buffer(unsigned char* output, unsigned char* input, uint32_t length, unsigned char* key, unsigned char* iv)
 {
+	state_h state;
   uintptr_t i;
 
-	//Lenght must be integer multiple of AES_BLOCK_SIZE
+	//Length must be integer multiple of AES_BLOCK_SIZE
   if(length % AES_BLOCK_SIZE){
 		return UC_CRYPTO_INVALID_LENGTH;
 	}
 
   memcpy(output, input, KEY_LEN);
-  state = (state_t*)output;
+  state = (state_h) output;
 
   // Skip the key expansion if key is passed as 0
   if(0 != key)
@@ -433,8 +436,8 @@ uint32_t AES128_CBC_decrypt_buffer(unsigned char* output, unsigned char* input, 
   for(i = 0; i < length; i += KEY_LEN)
   {
     memcpy(output, input, KEY_LEN);
-    state = (state_t*)output;
-    InvCipher();
+    state = (state_h) output;
+    InvCipher(state);
     XorWithIv(output);
     Iv = input;
     input += KEY_LEN;

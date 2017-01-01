@@ -14,7 +14,9 @@
 
 #include <stdint.h>
 
-typedef uint8_t state_t[4][4];
+typedef unsigned char state_t[4][4];
+typedef state_t* state_h;
+
 struct utilc_crypto_cipher_aes {
 	// Nb is always 4
 	uint8_t Nk;
