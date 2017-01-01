@@ -31,16 +31,9 @@
 /*****************************************************************************/
 /* Private variables:                                                        */
 /*****************************************************************************/
-// state - array holding the intermediate results during decryption.
-typedef uint8_t state_t[4][4];
-//static state_t* state;
 
 // The array that stores the round keys.
 static uint8_t RoundKey[176];
-
-// The Key input to the AES Program
-static const uint8_t* Key;
-
 
 // Initial Vector used only for CBC mode
 static uint8_t* Iv;
@@ -52,7 +45,7 @@ inputs: key,
 outputs: Nb(Nr+1) round keys
 
 */
-static void KeyExpansion(/*unsigned char *key, unsigned char ** round_keys*/)
+static void KeyExpansion(unsigned char *key)
 {
   uint32_t i, j, k;
   uint8_t tempa[4]; // Used for the column/row operations
@@ -60,10 +53,10 @@ static void KeyExpansion(/*unsigned char *key, unsigned char ** round_keys*/)
   // The first round key is the key itself.
   for(i = 0; i < Nk; ++i)
   {
-    RoundKey[(i * 4) + 0] = Key[(i * 4) + 0];
-    RoundKey[(i * 4) + 1] = Key[(i * 4) + 1];
-    RoundKey[(i * 4) + 2] = Key[(i * 4) + 2];
-    RoundKey[(i * 4) + 3] = Key[(i * 4) + 3];
+    RoundKey[(i * 4) + 0] = key[(i * 4) + 0];
+    RoundKey[(i * 4) + 1] = key[(i * 4) + 1];
+    RoundKey[(i * 4) + 2] = key[(i * 4) + 2];
+    RoundKey[(i * 4) + 3] = key[(i * 4) + 3];
   }
 
   // All other round keys are found from the previous round keys.
@@ -330,8 +323,7 @@ uint32_t AES128_ECB_encrypt(uint8_t* input, const uint8_t* key, uint8_t* output)
   memcpy(output, input, KEY_LEN);
   state = (state_h) output;
 
-  Key = key;
-  KeyExpansion();
+  KeyExpansion(key);
 
   // The next function call encrypts the PlainText with the Key using AES algorithm.
   Cipher(state);
@@ -347,8 +339,7 @@ uint32_t AES128_ECB_decrypt(uint8_t* input, const uint8_t* key, uint8_t *output)
   state = (state_h) output;
 
   // The KeyExpansion routine must be called before encryption.
-  Key = key;
-  KeyExpansion();
+  KeyExpansion(key);
 
   InvCipher(state);
 
@@ -376,8 +367,7 @@ uint32_t AES128_CBC_encrypt_buffer(uint8_t* output, uint8_t* input, uint32_t len
   // Skip the key expansion if key is passed as 0
   if(0 != key)
   {
-    Key = key;
-    KeyExpansion();
+    KeyExpansion(key);
   }
 
   if(iv != 0)
@@ -423,8 +413,7 @@ uint32_t AES128_CBC_decrypt_buffer(unsigned char* output, unsigned char* input, 
   // Skip the key expansion if key is passed as 0
   if(0 != key)
   {
-    Key = key;
-    KeyExpansion();
+    KeyExpansion(key);
   }
 
   // If iv is passed as 0, we continue to encrypt without re-setting the Iv
