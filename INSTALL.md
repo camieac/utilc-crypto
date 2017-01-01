@@ -4,11 +4,11 @@
 
 1. Clone the repository to your computer.
 	```
-	git clone https://github.com/camieac/utilc-template.git
+	git clone https://github.com/camieac/utilc-crypto.git
 	```
 2. Enter the `utilc-template` directory.
 	```
-	cd utilc-template
+	cd utilc-crypto
 	```
 3. Generate the build system.
 	```
