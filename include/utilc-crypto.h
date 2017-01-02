@@ -16,9 +16,9 @@
 #include "utilc-crypto-sw.h"
 #include "utilc-crypto-hw.h"
 
-uint32_t uc_crypto_cipher(char * src, char * dst, char * key, struct uc_crypto_options * opts);
-uint32_t uc_crypto_encrypt(char * src, char * dst, char * key, struct uc_crypto_options * opts);
-uint32_t uc_crypto_decrypt(char * src, char * dst, char * key, struct uc_crypto_options * opts);
+uint32_t uc_crypto_cipher(unsigned char * src, unsigned char * dst, struct uc_crypto_options * opts);
+uint32_t uc_crypto_encrypt(unsigned char * src, unsigned char * dst, struct uc_crypto_options * opts);
+uint32_t uc_crypto_decrypt(unsigned char * src, unsigned char * dst, struct uc_crypto_options * opts);
 
 void uc_str(char * buffer, uint32_t length);
 

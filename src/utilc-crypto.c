@@ -17,34 +17,34 @@
 #include "utilc-crypto-sw.h"
 #include "utilc-crypto-hw.h"
 
-inline uint32_t uc_crypto_cipher(char * src, char * dst, char * key, struct uc_crypto_options * opts){
+inline uint32_t uc_crypto_cipher(unsigned char * src, unsigned char * dst, struct uc_crypto_options * opts){
 	switch(opts->op) {
 		case ENCRYPT:
-			return uc_crypto_encrypt(src, dst, key, opts);
+			return uc_crypto_encrypt(src, dst, opts);
 		case DECRYPT:
-			return uc_crypto_decrypt(src, dst, key, opts);
+			return uc_crypto_decrypt(src, dst, opts);
 		default:
 			return UC_CRYPTO_INVALID_OP_CODE;
 	}
 }
 
-inline uint32_t uc_crypto_encrypt(char * src, char * dst, char * key, struct uc_crypto_options * opts){
+inline uint32_t uc_crypto_encrypt(unsigned char * src, unsigned char * dst, struct uc_crypto_options * opts){
 	switch(opts->impl) {
 		case SW:
-			return uc_crypto_sw_encrypt(src, dst, key, opts);
+			return uc_crypto_sw_encrypt(src, dst, opts);
 		case HW:
-			return uc_crypto_hw_encrypt(src, dst, key, opts);
+			return uc_crypto_hw_encrypt(src, dst, opts);
 		default:
 			return UC_CRYPTO_INVALID_IMPL_CODE;
 	}
 }
 
-inline uint32_t uc_crypto_decrypt(char * src, char * dst, char * key, struct uc_crypto_options * opts){
+inline uint32_t uc_crypto_decrypt(unsigned char * src, unsigned char * dst, struct uc_crypto_options * opts){
 	switch(opts->impl) {
 		case SW:
-			return uc_crypto_sw_decrypt(src, dst, key, opts);
+			return uc_crypto_sw_decrypt(src, dst, opts);
 		case HW:
-			return uc_crypto_hw_decrypt(src, dst, key, opts);
+			return uc_crypto_hw_decrypt(src, dst, opts);
 		default:
 			return UC_CRYPTO_INVALID_IMPL_CODE;
 	}

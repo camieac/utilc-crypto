@@ -17,33 +17,31 @@
 typedef unsigned char state_t[4][4];
 typedef state_t* state_h;
 
+typedef struct utilc_crypto_cipher_aes* aes_h;
 struct utilc_crypto_cipher_aes {
-	// Nb is always 4
 	uint8_t Nk;
 	uint8_t Nr;
 
-	state_t state;
+	unsigned length;
+
+	//state_h state;
 
 	// The array that stores the round keys.
-	unsigned char RoundKey[176];
+	//unsigned char RoundKey[176];
 
 	unsigned char* key;
+	unsigned key_len;
 
-
-	unsigned char* iv;
-
-
-
-
-
+	unsigned char* iv; //initialisation vector not used in ECB mode
+	// IV length is always 16 bytes (block size)
 
 };
 
-uint32_t uc_crypto_sw_cipher_aes(unsigned char *src, unsigned char *dst, unsigned char *key, struct uc_crypto_options *opts);
-uint32_t uc_crypto_sw_encrypt_aes(unsigned char *src, unsigned char *dst, unsigned char *key, struct uc_crypto_options *opts);
-uint32_t uc_crypto_sw_decrypt_aes(unsigned char *src, unsigned char *dst, unsigned char *key, struct uc_crypto_options *opts);
+uint32_t uc_crypto_sw_cipher_aes(unsigned char *src, unsigned char *dst, struct uc_crypto_options *opts);
+uint32_t uc_crypto_sw_encrypt_aes(unsigned char *src, unsigned char *dst, struct uc_crypto_options *opts);
+uint32_t uc_crypto_sw_decrypt_aes(unsigned char *src, unsigned char *dst, struct uc_crypto_options *opts);
 
-uint32_t AES128_ECB_encrypt(uint8_t* input, const uint8_t* key, uint8_t* output);
-uint32_t AES128_ECB_decrypt(uint8_t* input, const uint8_t* key, uint8_t* output);
+uint32_t aes_ecb_encrypt_block(unsigned char* input, unsigned char* output, aes_h aes);
+uint32_t aes_ecb_decrypt_block(unsigned char* input, unsigned char* output, aes_h aes);
 
 #endif //_AES_H_

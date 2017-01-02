@@ -15,22 +15,30 @@
 #include "utilc-crypto-sw.h"
 #include "aes/aes.h"
 
-uint32_t uc_crypto_sw_cipher(unsigned char * src, unsigned char * dst, unsigned char * key, struct uc_crypto_options *opts){
+uint32_t uc_crypto_sw_cipher(unsigned char * src, unsigned char * dst, struct uc_crypto_options *opts) {
 	switch(opts->cipher){
 		case AES_CBC:
 		case AES_ECB:
-			uc_crypto_sw_cipher_aes(src, dst, key, opts);
+			uc_crypto_sw_cipher_aes(src, dst, opts);
 		break;
 
 	}
 }
 
-uint32_t uc_crypto_sw_encrypt(unsigned char * src, unsigned char * dst, unsigned char * key, struct uc_crypto_options *opts){
+uint32_t uc_crypto_sw_encrypt(unsigned char * src, unsigned char * dst, struct uc_crypto_options *opts) {
 	switch(opts->cipher){
-
+		case AES_CBC:
+		case AES_ECB:
+			uc_crypto_sw_encrypt_aes(src, dst, opts);
+		break;
 	}
 }
 
-uint32_t uc_crypto_sw_decrypt(unsigned char * src, unsigned char * dst, unsigned char * key, struct uc_crypto_options *opts){
-
-}
+uint32_t uc_crypto_sw_decrypt(unsigned char * src, unsigned char * dst, struct uc_crypto_options *opts) {
+	switch(opts->cipher){
+		case AES_CBC:
+		case AES_ECB:
+			uc_crypto_sw_decrypt_aes(src, dst, opts);
+		break;
+	}
+	}

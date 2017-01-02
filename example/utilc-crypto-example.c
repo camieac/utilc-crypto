@@ -22,13 +22,14 @@ int main (int argc, char *argv[]){
 
 	struct uc_crypto_options opts = {
 		.cipher = AES_ECB,
+		.cipher_len = 16,
 		.op = ENCRYPT,
 		.impl = SW,
-		.iv = iv,
-		.cipher_len = 16
+		.key = key,
+		.key_len = 16,
 	};
 
-	uc_crypto_cipher(plaintext, ciphertext, key, &opts);
+	uc_crypto_cipher(plaintext, ciphertext, &opts);
 
 	printf("plaintext:\t");
 	uc_str(plaintext, 16);
@@ -46,10 +47,8 @@ int main (int argc, char *argv[]){
 	uc_str(ciphertext, 16);
 	printf("\n");
 
-	memset(plaintext, 0, 16);
-
 	opts.op = DECRYPT;
-	uc_crypto_cipher(ciphertext, plaintext, key, &opts);
+	uc_crypto_cipher(ciphertext, plaintext2, &opts);
 
 	printf("plaintext2:\t");
 	uc_str(plaintext2, 16);

@@ -15,8 +15,8 @@
 #include "aes/aes.h"
 #include <stdint.h>
 
-uint32_t uc_crypto_sw_cipher(unsigned char * src, unsigned char * dst, unsigned char * key, struct uc_crypto_options *opts);
-uint32_t uc_crypto_sw_encrypt(unsigned char * src, unsigned char * dst, unsigned char * key, struct uc_crypto_options *opts);
-uint32_t uc_crypto_sw_decrypt(unsigned char * src, unsigned char * dst, unsigned char * key, struct uc_crypto_options *opts);
+uint32_t uc_crypto_sw_cipher(unsigned char * src, unsigned char * dst, struct uc_crypto_options *opts);
+uint32_t uc_crypto_sw_encrypt(unsigned char * src, unsigned char * dst, struct uc_crypto_options *opts);
+uint32_t uc_crypto_sw_decrypt(unsigned char * src, unsigned char * dst, struct uc_crypto_options *opts);
 
 #endif

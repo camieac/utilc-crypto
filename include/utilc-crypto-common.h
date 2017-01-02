@@ -45,9 +45,10 @@ struct uc_crypto_options {
 	enum uc_crypto_cipher_e cipher;
 	enum uc_crypto_op_e op;
 	enum uc_crypto_impl_e impl;
-	char *iv;
-
-	uint32_t cipher_len;
+	unsigned char *iv;
+	unsigned char *key;
+	unsigned key_len;
+	unsigned cipher_len;
 };
 
 enum uc_crypto_error_codes_e {
