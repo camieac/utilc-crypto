@@ -22,11 +22,11 @@
 /*****************************************************************************/
 
 // The number of 32 bit words in a key.
-#define Nk 4
+//#define Nk 4
 // Key length in bytes [128 bit]
-#define KEY_LEN 16
+// #define KEY_LEN 16
 // The number of rounds in AES Cipher.
-#define Nr 10
+//#define Nr 10
 
 #define AES_BLOCK_SIZE 16 //Each block is 16 bytes
 #define Nb 4							//Number of columns in block
@@ -38,27 +38,27 @@ inputs: key,
 outputs: Nb(Nr+1) round keys
 
 */
-static void KeyExpansion(const unsigned char *key, unsigned char *round_key) {
+static void KeyExpansion(unsigned char *round_key, aes_h aes) {
   uint32_t i, j, k;
   unsigned char tempa[4]; // Used for the column/row operations
 
   // The first round key is the key itself.
-  for(i = 0; i < Nk; ++i)
+  for(i = 0; i < aes->Nk; ++i)
   {
-    round_key[(i * 4) + 0] = key[(i * 4) + 0];
-    round_key[(i * 4) + 1] = key[(i * 4) + 1];
-    round_key[(i * 4) + 2] = key[(i * 4) + 2];
-    round_key[(i * 4) + 3] = key[(i * 4) + 3];
+    round_key[(i * 4) + 0] = aes->key[(i * 4) + 0];
+    round_key[(i * 4) + 1] = aes->key[(i * 4) + 1];
+    round_key[(i * 4) + 2] = aes->key[(i * 4) + 2];
+    round_key[(i * 4) + 3] = aes->key[(i * 4) + 3];
   }
 
   // All other round keys are found from the previous round keys.
-  for(; (i < (Nb * (Nr + 1))); ++i)
+  for(; (i < (Nb * (aes->Nr + 1))); ++i)
   {
     for(j = 0; j < 4; ++j)
     {
       tempa[j] = round_key[(i-1) * 4 + j];
     }
-    if (i % Nk == 0)
+    if (i % aes->Nk == 0)
     {
       // This function rotates the 4 bytes in a word to the left once.
       // [a0,a1,a2,a3] becomes [a1,a2,a3,a0]
@@ -83,9 +83,9 @@ static void KeyExpansion(const unsigned char *key, unsigned char *round_key) {
         tempa[3] = sbox[tempa[3]];
       }
 
-      tempa[0] =  tempa[0] ^ Rcon[i/Nk];
+      tempa[0] =  tempa[0] ^ Rcon[i/aes->Nk];
     }
-    else if (Nk > 6 && i % Nk == 4)
+    else if (aes->Nk > 6 && i % aes->Nk == 4)
     {
       // Function Subword()
       {
@@ -95,10 +95,10 @@ static void KeyExpansion(const unsigned char *key, unsigned char *round_key) {
         tempa[3] = sbox[tempa[3]];
       }
     }
-    round_key[i * 4 + 0] = round_key[(i - Nk) * 4 + 0] ^ tempa[0];
-    round_key[i * 4 + 1] = round_key[(i - Nk) * 4 + 1] ^ tempa[1];
-    round_key[i * 4 + 2] = round_key[(i - Nk) * 4 + 2] ^ tempa[2];
-    round_key[i * 4 + 3] = round_key[(i - Nk) * 4 + 3] ^ tempa[3];
+    round_key[i * 4 + 0] = round_key[(i - aes->Nk) * 4 + 0] ^ tempa[0];
+    round_key[i * 4 + 1] = round_key[(i - aes->Nk) * 4 + 1] ^ tempa[1];
+    round_key[i * 4 + 2] = round_key[(i - aes->Nk) * 4 + 2] ^ tempa[2];
+    round_key[i * 4 + 3] = round_key[(i - aes->Nk) * 4 + 3] ^ tempa[3];
   }
 }
 
@@ -106,8 +106,7 @@ static void KeyExpansion(const unsigned char *key, unsigned char *round_key) {
 // The round key is added to the state by an XOR function.
 static void AddRoundKey(uint8_t round, state_h state, unsigned char *round_key) {
   uint8_t i,j;
-  for(i=0;i<4;++i)
-  {
+  for(i = 0; i < 4; ++i){
     for(j = 0; j < 4; ++j)
     {
       (*state)[i][j] ^= round_key[round * Nb * 4 + i * Nb + j];
@@ -165,7 +164,7 @@ static unsigned char xtime(unsigned char x)
 
 static void XorWithIv(unsigned char* buf, const unsigned char *iv) {
   uint8_t i;
-  for(i = 0; i < KEY_LEN; ++i)
+  for(i = 0; i < AES_BLOCK_SIZE; ++i)
   {
     buf[i] ^= iv[i];
   }
@@ -256,10 +255,35 @@ static void InvShiftRows(state_h state) {
   (*state)[2][3] = (*state)[3][3];
   (*state)[3][3] = temp;
 }
+//Return number of rounds requried to cipher, based on key size
+static uint8_t NumberRounds(unsigned key_len){
+	switch(key_len){
+		case 16: //128-bit --> 10 rounds
+			return 10U;
+		case 24: //192-bit --> 12 rounds
+			return 12U;
+		case 32: //256-bit --> 14 rounds
+			return 14U;
+		default:
+			return 0U;
+	}
+}
 
+static uint8_t Number32BitWordsInKey(unsigned key_len){
+	switch(key_len){
+		case 16: //128-bit --> 10 rounds
+			return 4U;
+		case 24: //192-bit --> 12 rounds
+			return 6U;
+		case 32: //256-bit --> 14 rounds
+			return 8U;
+		default:
+			return 0U;
+	}
+}
 
 // Cipher is the main function that encrypts the PlainText.
-static void Cipher(state_h state, unsigned char *round_keys) {
+static void Cipher(state_h state, unsigned char *round_keys, aes_h aes) {
   uint8_t round = 0;
 
   // Add the First round key to the state before starting the rounds.
@@ -268,7 +292,7 @@ static void Cipher(state_h state, unsigned char *round_keys) {
   // There will be Nr rounds.
   // The first Nr-1 rounds are identical.
   // These Nr-1 rounds are executed in the loop below.
-  for(round = 1; round < Nr; ++round)
+  for(round = 1; round < aes->Nr; ++round)
   {
     SubBytes(state);
     ShiftRows(state);
@@ -280,19 +304,18 @@ static void Cipher(state_h state, unsigned char *round_keys) {
   // The MixColumns function is not here in the last round.
   SubBytes(state);
   ShiftRows(state);
-  AddRoundKey(Nr, state, round_keys);
+  AddRoundKey(aes->Nr, state, round_keys);
 }
 
-static void InvCipher(state_h state, unsigned char *round_keys) {
+static void InvCipher(state_h state, unsigned char *round_keys, aes_h aes) {
   uint8_t round=0;
   // Add the First round key to the state before starting the rounds.
-  AddRoundKey(Nr, state, round_keys);
+  AddRoundKey(aes->Nr, state, round_keys);
 
   // There will be Nr rounds.
   // The first Nr-1 rounds are identical.
   // These Nr-1 rounds are executed in the loop below.
-  for(round=Nr-1;round>0;round--)
-  {
+  for(round = aes->Nr-1; round > 0; round --) {
     InvShiftRows(state);
     InvSubBytes(state);
     AddRoundKey(round, state, round_keys);
@@ -316,15 +339,15 @@ uint32_t aes_ecb_encrypt_block(unsigned char* plaintext_in, unsigned char* ciphe
 	}
 
 	state_h state;
-	unsigned char round_keys[176];
+	unsigned char round_keys[aes->Nr * (AES_BLOCK_SIZE + 1)];
   // Copy plaintext_in to output, and work in-memory on ciphertext_out
   memcpy(ciphertext_out, plaintext_in, AES_BLOCK_SIZE);
   state = (state_h) ciphertext_out;
 
-  KeyExpansion(aes->key, round_keys);
+  KeyExpansion(round_keys, aes);
 
   // The next function call encrypts the PlainText with the Key using AES algorithm.
-  Cipher(state, round_keys);
+  Cipher(state, round_keys, aes);
 
 	return UC_CRYPTO_SUCCESS;
 }
@@ -335,15 +358,15 @@ uint32_t aes_ecb_decrypt_block(unsigned char* ciphertext_in, unsigned char* plai
 	}
 
 	state_h state;
-	unsigned char round_keys[176];
+	unsigned char round_keys[aes->Nr * (AES_BLOCK_SIZE + 1)];
   // Copy input to output, and work in-memory on plaintext_out
   memcpy(plaintext_out, ciphertext_in, AES_BLOCK_SIZE);
   state = (state_h) plaintext_out;
 
   // The KeyExpansion routine must be called before encryption.
-  KeyExpansion(aes->key, round_keys);
+  KeyExpansion(round_keys, aes);
 
-  InvCipher(state, round_keys);
+  InvCipher(state, round_keys, aes);
 
 	return UC_CRYPTO_SUCCESS;
 }
@@ -359,18 +382,15 @@ uint32_t aes_cbc_encrypt_buffer(unsigned char* ciphertext_out, unsigned char* pl
 	}
 
 	state_h state;
-	unsigned char round_keys[176];
+	unsigned char round_keys[aes->Nr * (AES_BLOCK_SIZE + 1)];
   uintptr_t i;
 
-
-
-  memcpy(ciphertext_out, plaintext_in, KEY_LEN);
   state = (state_h) ciphertext_out;
 
   // Skip the key expansion if key is passed as 0
   if(0 != aes->key)
   {
-    KeyExpansion(aes->key, round_keys);
+    KeyExpansion(round_keys, aes);
   }
 	// TODO: check IV for NULL?
   // if(iv != 0)
@@ -378,15 +398,15 @@ uint32_t aes_cbc_encrypt_buffer(unsigned char* ciphertext_out, unsigned char* pl
   //   Iv = (uint8_t*)iv;
   // }
 
-  for(i = 0; i < aes->length; i += KEY_LEN)
+  for(i = 0; i < aes->length; i += AES_BLOCK_SIZE)
   {
     XorWithIv(plaintext_in, aes->iv);
-    memcpy(ciphertext_out, plaintext_in, KEY_LEN);
+    memcpy(ciphertext_out, plaintext_in, AES_BLOCK_SIZE);
     state = (state_t*)ciphertext_out;
-    Cipher(state, round_keys);
+    Cipher(state, round_keys, aes);
     aes->iv = ciphertext_out;
-    plaintext_in += KEY_LEN;
-    ciphertext_out += KEY_LEN;
+    plaintext_in += AES_BLOCK_SIZE;
+    ciphertext_out += AES_BLOCK_SIZE;
   }
 
 	return UC_CRYPTO_SUCCESS;
@@ -394,7 +414,7 @@ uint32_t aes_cbc_encrypt_buffer(unsigned char* ciphertext_out, unsigned char* pl
 
 uint32_t aes_cbc_decrypt_buffer(unsigned char* plaintext_out, unsigned char* ciphertext_in, aes_h aes) {
 	state_h state;
-	unsigned char round_keys[176];
+	unsigned char round_keys[aes->Nr * (AES_BLOCK_SIZE + 1)];
   uintptr_t i;
 
 	//Length must be integer multiple of AES_BLOCK_SIZE
@@ -402,13 +422,13 @@ uint32_t aes_cbc_decrypt_buffer(unsigned char* plaintext_out, unsigned char* cip
 		return UC_CRYPTO_INVALID_LENGTH;
 	}
 
-  memcpy(plaintext_out, ciphertext_in, KEY_LEN);
+  //memcpy(plaintext_out, ciphertext_in, KEY_LEN);
   state = (state_h) plaintext_out;
 
   // Skip the key expansion if key is passed as 0
   if(0 != aes->key)
   {
-    KeyExpansion(aes->key, round_keys);
+    KeyExpansion(round_keys, aes);
   }
 
   // If iv is passed as 0, we continue to encrypt without re-setting the Iv
@@ -417,15 +437,15 @@ uint32_t aes_cbc_decrypt_buffer(unsigned char* plaintext_out, unsigned char* cip
   //   Iv = (uint8_t*)iv;
   // }
 
-  for(i = 0; i < aes->length; i += KEY_LEN)
+  for(i = 0; i < aes->length; i += AES_BLOCK_SIZE)
   {
-    memcpy(plaintext_out, ciphertext_in, KEY_LEN);
+    memcpy(plaintext_out, ciphertext_in, AES_BLOCK_SIZE);
     state = (state_h) plaintext_out;
-    InvCipher(state, round_keys);
+    InvCipher(state, round_keys, aes);
     XorWithIv(plaintext_out, aes->iv);
     aes->iv = ciphertext_in;
-    ciphertext_in += KEY_LEN;
-    plaintext_out += KEY_LEN;
+    ciphertext_in += AES_BLOCK_SIZE;
+    plaintext_out += AES_BLOCK_SIZE;
   }
 
 	return UC_CRYPTO_SUCCESS;
@@ -455,13 +475,6 @@ uint32_t aes_ecb_decrypt_buffer(unsigned char* plaintext_out, unsigned char* cip
 
 
 uint32_t uc_crypto_sw_cipher_aes (unsigned char *src, unsigned char *dst, struct uc_crypto_options *opts){
-	// struct utilc_crypto_cipher_aes aes = {
-	// 	.key = opts->key,
-	// 	.key_len = opts->key_len,
-	// 	.length = opts->cipher_len,
-	// 	.iv = opts->iv,
-	// };
-
 	switch(opts->op){
 		case ENCRYPT:
 			return uc_crypto_sw_encrypt_aes(src, dst, opts);
@@ -477,6 +490,9 @@ uint32_t uc_crypto_sw_encrypt_aes(unsigned char *src, unsigned char *dst, struct
 		.key_len = opts->key_len,
 		.length = opts->cipher_len,
 		.iv = opts->iv,
+
+		.Nr = NumberRounds(opts->key_len),
+		.Nk = Number32BitWordsInKey(opts->key_len)
 	};
 
 	switch(opts->cipher){
@@ -495,6 +511,9 @@ uint32_t uc_crypto_sw_decrypt_aes(unsigned char *src, unsigned char *dst, struct
 		.key_len = opts->key_len,
 		.length = opts->cipher_len,
 		.iv = opts->iv,
+
+		.Nr = NumberRounds(opts->key_len),
+		.Nk = Number32BitWordsInKey(opts->key_len)
 	};
 
 	switch(opts->cipher){
