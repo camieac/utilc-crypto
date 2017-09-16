@@ -1,7 +1,7 @@
 enable_testing()
 find_package(Check REQUIRED)
 include_directories(${CHECK_INCLUDE_DIRS})
-set(LIBS ${LIBS} ${CHECK_LIBRARIES} utilc-crypto)
+set(LIBS ${LIBS} ${CHECK_LIBRARIES} utilc-crypto m pthread rt subunit)
 include_directories(. ../include)
 add_executable(test-utilc-crypto test-utilc-crypto.c)
 target_link_libraries(test-utilc-crypto ${LIBS})
